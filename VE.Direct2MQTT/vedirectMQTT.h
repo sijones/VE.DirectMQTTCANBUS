@@ -1,7 +1,3 @@
-
-#ifndef VEDIRECTWIFI_H
-#define VEDIRECTWIFI_H
-
 void onMessageReceived(const String& topic, const String& message) 
 {
 #ifdef USE_CANBUS
