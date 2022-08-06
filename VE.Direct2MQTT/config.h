@@ -8,6 +8,7 @@
    MIT License
 
    Copyright (c) 2020 Ralf Lehmann
+   Copyright (c) 2022 Simon Jones
 
 
    Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -33,6 +34,23 @@
    Defines that activate features like OTA (over the air update)
    or Acitve/Passive mode
 */
+
+// To use CANBus set the below
+#define USE_CANBUS
+
+#ifdef USE_CANBUS
+#define CAN_INT 22                        // CAN Init Pin for M5Stack
+#define CAN_CS_PIN 2                      // CAN CS PIN
+#define initBattChargeVoltage 56000       // Battery Charge Voltage sent to inverter
+#define initBattDischargeVoltage 45000    // Battery discharge voltage, not currently used
+#define initBattChargeCurrent 100000      // in mA, this is just the initial / max setting, it will self adjust
+#define initBattDischargeCurrent 100000   // in mA 
+#define initBattCapacity 475000           // used for charge limits when batteries becoming full.
+          
+// To use PYLONTECH Protocol enable below
+#define USE_PYLONTECH
+
+#endif
 // use SSL to connect to MQTT Server or OTA Server
 // it is strongly recommended to use SSL if you send any password over the net
 // connectiong to MQTT might need a password; the same for OTA
@@ -40,13 +58,12 @@
 #define NO_USE_SSL
 
 // Activate Over The Air Update of firmware
-// rename to NO_USE_OTA if you do not have a webserver that can server new firmware
 #define USE_OTA
 
 //
 // Use OneWire temperature sensors 
 //
-#define USE_ONEWIRE
+//#define USE_ONEWIRE
 
 #ifdef USE_ONEWIRE
 #define ONEWIRE_PIN 22
@@ -106,57 +123,41 @@ const char* rootCACertificate = \
 
 // WiFi SSID'S and passwords
 // the strongest WiFi station will be used
-const char* ssid[] = {"SSID1", "SSID2", "SSID3"};
-const char* pw[] = {"PW_SSID1", "PW_SSID2", "PW_SSID3"};
+const char* ssid = "";
+const char* pw = "";
 
 /*
    MQTT parameters
-   you can have more than one MQTT server, the first one that answers will have the connection
-   it is strongly recommended to use SSL if you send a username and password over the internet
    ATTENTION: use a unique client id to connect to MQTT or you will be kicked out by another device
    using your id
 */
-#define MQTT_MAX_RETRIES 3   // maximum retires to reach a MQTT broker
-const char* mqtt_server[] = {"IP_MQTT1", "IP_MQTT2"};
+//#define MQTT_MAX_RETRIES 3   // maximum retires to reach a MQTT broker
+const char* mqtt_server = "";
 // no SSL ports
-const uint16_t mqtt_port[] = {1883, 1883};
+const uint16_t mqtt_port = 1883;
 // SSL ports
 //const uint16_t mqtt_port[] = {8883, 8883};
-const char* mqtt_clientID[] = {"clientID", "clientID"};
-const char* mqtt_username[] = {"mqttUserName", "mqttUserName"};
-const char* mqtt_pw[] = {"mqttUserPW", "mqttUserPW"};
-int mqtt_server_count = sizeof(mqtt_server) / sizeof(mqtt_server[0]);
+const char* mqtt_clientID = "vedirectmqtt";
+const char* mqtt_username = "emon";
+const char* mqtt_password = "emonmqtt";
+//int mqtt_server_count = sizeof(mqtt_server) / sizeof(mqtt_server[0]);
 
 // this is the MQTT prefix; below that we use the string from VE.Direct
 // e.g. /MPPT75-15/PID  for Product ID
-String MQTT_PREFIX = "/MPPT75-15NOSSL";
-String MQTT_PARAMETER = "/MPPT75-15NOSSL/Parameter"; 
+String MQTT_PREFIX = "SMARTBMS";
+String MQTT_PARAMETER = "/Parameter"; 
 #ifdef USE_ONEWIRE
-String MQTT_ONEWIRE = "/MPPT75-15NOSSL/OneWire";
+String MQTT_ONEWIRE = "/Temp/OneWire";
 #endif
 
 
 #ifdef USE_OTA
 /*
-   the binary file to look for
-*/
-#define SKETCH_NAME "VE.Direct2MQTT.ino.esp32.bin"  // sketch name and binary
-/*
-   the URL of he update
-   Note: the php script file.php returns a 302 "not modified" if the checksum of the current sketch and the binary
-   is the same
-   URL:
-   http://username:pw@servername/bin/file.php?
-*/
-const char* ota_server_string[] = {"http://user:pw@serverIP/bin/file.php?", "http://user:pw@serverName/bin/file.php?"};
-int ota_server_count = sizeof(ota_server_string) / sizeof(ota_server_string[0]);
 
-/*
-   define the wait time between 2 attempts to update the firmware
-   300000 = every 5 minutes
 */
-int OTA_WAIT_TIME = 300; // in s
-time_t last_ota;
+
+
+
 #endif
 
 /*
