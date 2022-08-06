@@ -52,7 +52,6 @@
 #include "config.h"
 
 #include "EspMQTTClient.h"
-#include "vedirectWiFi.h"
 
 EspMQTTClient client(
     ssid,
@@ -81,10 +80,6 @@ uint32_t SendCanBusMQTTUpdates;
 
 #ifdef USE_ONEWIRE
 #include "vedirectONEWIRE.h"
-#endif
-
-#ifdef USE_OTA
-#include "vedirectOTA.h"
 #endif
 
 VEDirect ve;
