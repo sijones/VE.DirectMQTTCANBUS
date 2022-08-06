@@ -6,6 +6,7 @@
    MIT License
 
    Copyright (c) 2020 Ralf Lehmann
+   Copyright (c) 2022 Simon Jones
 
 
    Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -182,7 +183,7 @@ boolean VEDirect::addToASCIIBlock(String s) {
     // not the end of a frame yet; continue
     return false;
   } else {
-    log_e("Receviced Data not correct: \"%s\"", s.c_str());
+    log_e("Received Data not correct: \"%s\"", s.c_str());
     //delete splitter;
     return false;
   }
