@@ -8,8 +8,8 @@ VE.Direct2MQTT is using an ESP32 developers board and the Arduino IDE to send al
 With the help of the MQTT server you can integrate the monitoring data to virtually any Home Automation System. I use Home Assistant to automate off peak battery charging (using Force Charge) and can also enable and disable the charging and discharging.
 
 ## Features
-- Listen to VE.Direct messages and publish a block (consisting of several key-value pairs) to a MQTT broker<br>Every key from the device will be appended to the MQTT_PREFIX and build a topic. e.g. MQTT_PREFIX="/MPPT"; Topic /MPPT/V will contain the Battery Voltage<br> so please see the VE.Direct protocol for the meaning of topics
-- Supports MQTT Commands to enable and disable charge/discharging of an inverter, force charge the batteries to be able to charge over night at off peak rates.
+- Listen to VE.Direct messages and publish a block (consisting of several key-value pairs) to a MQTT broker<br>Every key from the device will be appended to the MQTT_PREFIX and build a topic. e.g. MQTT_PREFIX="/SMARTBMS"; Topic /SMARTBMS/V will contain the Battery Voltage<br> so please see the VE.Direct protocol for the meaning of topics
+- Supports MQTT Commands to enable and disable charge/discharging of an inverter, force charge the batteries to be able to charge over night at off peak rates. See the home assistant file for the commands and config.
 - SSL is currently disabled
 - Supports single MQTT server
 - OneWire temperature sensors will be supported in a future version
