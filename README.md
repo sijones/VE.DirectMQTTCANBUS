@@ -1,13 +1,13 @@
+**** Only forked, the modified files are not commited yet. ****
 
 Victron is building wonderful devices for Solar systems.
 Some of the devices have a VE.Direct interface and Victron disclosed the protocol.
 
 - See also: https://www.victronenergy.com/live/vedirect_protocol:faq
 
-I do own 2 MPTT75/15 Solar charger and all that I was missing was a MQTT interface for monitoring.
-I do NOT plan or intend to augment or replace the, in my eyes, perfect bluetooth app.
 
-So here it is
+
+
 
 # VE.Direct2MQTT
 
