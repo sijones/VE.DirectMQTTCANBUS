@@ -49,6 +49,7 @@
    All configuration comes from config.h
    So please see there for WiFi, MQTT and OTA configuration
 */
+#include <Arduino.h>
 #include "config.h"
 
 #include "EspMQTTClient.h"

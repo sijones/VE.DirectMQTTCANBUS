@@ -52,7 +52,7 @@ bool _initialDischargeCurrent = false;
 bool _initialDone = false;
 
     // Used to tell the inverter battery data
-uint8_t _battSOC;
+uint8_t _battSOC = 50;
 uint8_t _battSOH = 100; // State of health, not useful so defaulted to 100% 
 uint16_t _battVoltage;
 int32_t _battCurrentmA;
@@ -69,6 +69,9 @@ uint32_t _dischargeCurrentmA = 0;
 uint32_t _maxChargeCurrentmA = 0;
 uint32_t _maxDischargeCurrentmA = 0;
 
+// Track how many failed CAN BUS sends and reboot ESP if more than limit
+uint8_t _maxFailedAttempts = 10;
+uint8_t _failedAttemptsCount = 0;
 
 uint32_t LoopTimer; // store current time
 // The interval for sending the inverter updated information
@@ -95,8 +98,13 @@ bool CAN_AllReady(){
                     if (_initialDone) return true;
                     else if (_initialBattSOC && _initialBattVoltage && _initialBattCurrent &&
                     _initialChargeVoltage && _initialChargeCurrent && _initialDischargeVoltage && _initialDischargeCurrent)
-                    _initialDone = true;
-                    else return false;}
+                    {
+                      _dischargeCurrentmA = _maxDischargeCurrentmA;
+                      _chargeCurrentmA = _maxChargeCurrentmA;
+                      _initialDone = true;
+                      return true;
+                    } else 
+                      return false;}
 
 void CAN_BattSOC(uint8_t soc){_initialBattSOC = true; _battSOC = soc;}
 void CAN_BattVoltage(uint16_t voltage){_initialBattVoltage = true; _battVoltage = voltage;}
@@ -125,20 +133,28 @@ void CAN_SetChargeVoltage(uint32_t Voltage){
   }
 
 void CAN_SetChargeCurrent(uint32_t CurrentmA){
-  if(!_initialChargeCurrent) _maxChargeCurrentmA = CurrentmA;
-  _initialChargeCurrent = true;
-  if (_chargeCurrentmA != CurrentmA) { 
+  if(!_initialChargeCurrent) {
+    _maxChargeCurrentmA = CurrentmA; 
+    _initialChargeCurrent = true; 
+  }
+  else if (_chargeCurrentmA != CurrentmA && _initialDone) { 
     _dataChanged = true;
     _chargeCurrentmA = CurrentmA;
-  }
+  } else
+    return;
 }
 
-void CAN_SetDischargeVoltage(uint32_t Voltage){_initialDischargeVoltage = true; _dischargeVoltage = Voltage;}
+void CAN_SetDischargeVoltage(uint32_t Voltage){
+  _initialDischargeVoltage = true; 
+  _dischargeVoltage = Voltage;
+  }
 
 void CAN_SetDischargeCurrent(uint32_t CurrentmA){
-  if(!_initialDischargeCurrent) _maxDischargeCurrentmA = CurrentmA;;
-  _initialDischargeCurrent = true; 
-  if (_dischargeCurrentmA != CurrentmA) {
+  if(!_initialDischargeCurrent) {
+    _maxDischargeCurrentmA = CurrentmA;
+    _initialDischargeCurrent = true; 
+    }
+  if (_dischargeCurrentmA != CurrentmA && _initialDone) {
     _dischargeCurrentmA = CurrentmA;
     _dataChanged = true;
     }
@@ -204,7 +220,7 @@ bool CAN_SendAllUpdate()
 
   if (_battCapacity > 0){
     if(_battSOC > 95)
-      _chargeCurrentmA = (_battCapacity / 18);
+      _chargeCurrentmA = (_battCapacity / 20);
     else if(_battSOC > 90)
       _chargeCurrentmA = (_battCapacity / 10);
     else
@@ -289,15 +305,15 @@ bool CAN_SendBattUpdate(uint8_t SOC, uint16_t Voltage, int32_t CurrentmA, int16_
     CAN_MSG[6] = 0x4E;
     CAN_MSG[7] = 0x00;
 
-    sndStat = CAN.sendMsgBuf(0x359, 0, 7, CAN_MSG);
+    sndStat = CAN.sendMsgBuf(0x359, 0, 8, CAN_MSG);
     delay(_canSendDelay); 
 
     //0x35C – C0 00 – Battery charge request flags
     CAN_MSG[0] = 0xC0;
     CAN_MSG[1] = 0x00;
-    if (_forceCharge) CAN_MSG[1] += bmsForceCharge;
-    if (_chargeEnabled) CAN_MSG[1] += bmsChargeEnable;
-    if (_dischargeEnabled) CAN_MSG[1] += bmsDischargeEnable;
+    if (_forceCharge) CAN_MSG[1] || bmsForceCharge;
+    if (_chargeEnabled) CAN_MSG[1] || bmsChargeEnable;
+    if (_dischargeEnabled) CAN_MSG[1] || bmsDischargeEnable;
     CAN_MSG[2] = 0x00;
     CAN_MSG[3] = 0x00;
     CAN_MSG[4] = 0x00;
@@ -361,7 +377,7 @@ bool CAN_SendParamUpdate(){
 }
 
 
-boolean UpdateCanBusData(VEDirectBlock_t * block) {
+void UpdateCanBusData(VEDirectBlock_t * block) {
   for (int i = 0; i < block->kvCount; i++) {
     bool dataValid = false;
     String key = block->b[i].key;
@@ -388,7 +404,7 @@ boolean UpdateCanBusData(VEDirectBlock_t * block) {
     if (key.compareTo(String('V')) == 0)
     {
       log_i("Battery Voltage Update: %sV", parsedValue.c_str());
-      if (dataValid) CAN_BattVoltage((uint16_t) parsedValue.toInt() * 0.1);
+      if (dataValid) CAN_BattVoltage((uint16_t) round(parsedValue.toInt() * 0.1));
     }
     
     if (key.compareTo(String('I')) == 0)
@@ -400,7 +416,7 @@ boolean UpdateCanBusData(VEDirectBlock_t * block) {
     if (key.compareTo(String("SOC")) == 0)
     {
       log_i("Battery SOC Update: %s%%",parsedValue.c_str());
-      if (dataValid) CAN_BattSOC((uint8_t) (parsedValue.toInt()*0.1));
+      if (dataValid) CAN_BattSOC((uint8_t) round((parsedValue.toInt()*0.1)));
     }
     
    /* if (key.compareTo(String('SOC')) == 0)

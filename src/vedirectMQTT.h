@@ -1,15 +1,19 @@
 void onMessageReceived(const String& topic, const String& message) 
 {
 #ifdef USE_CANBUS
-  if (topic == MQTT_PREFIX + "/set/" + "DischargeLimit") {
+  if (topic == MQTT_PREFIX + "/set/" + "DischargeCurrent") {
     CAN_SetDischargeCurrent(message.toInt());
+    client.publish(MQTT_PREFIX + "/Param/DischargeCurrent", message);
   }
   else if (topic == MQTT_PREFIX + "/set/" + "ChargeVoltage") {
-    if (message.toInt() > 0)
+    if (message.toInt() > 0) {
       CAN_SetChargeVoltage(message.toInt());
+      client.publish(MQTT_PREFIX + "/Param/ChargeVoltage", message);
+    }
   }
-  else if (topic == MQTT_PREFIX + "/set/" + "ChargeLimit") {
+  else if (topic == MQTT_PREFIX + "/set/" + "ChargeCurrent") {
    CAN_SetChargeCurrent(message.toInt());
+   client.publish(MQTT_PREFIX + "/Param/ChargeCurrent", message);
   }
   else if (topic == MQTT_PREFIX + "/set/" + "ForceCharge") {
     CAN_ForceCharge((message == "ON") ? true : false);
@@ -24,7 +28,7 @@ void onMessageReceived(const String& topic, const String& message)
     CAN_EnablePylonTech((message == "ON") ? true : false); 
     client.publish(MQTT_PREFIX + "/Param/EnablePYLONTECH", (CAN_EnablePylonTech() == true) ? "ON" : "OFF" ); }
   else {
-    client.publish(MQTT_PREFIX + "/LastMessage", "Command not recognised Topic: " + topic + " - Payload: " + message);
+    client.publish(MQTT_PREFIX + "/LastMessage", "Command not recognised, Topic: " + topic + " - Payload: " + message);
   }
 #endif
 }
@@ -47,14 +51,19 @@ bool sendASCII2MQTT(VEDirectBlock_t * block) {
         }
     }
   }
+  return true;
 }
 
 bool sendUpdateMQTTData()
 {
-  client.publish(MQTT_PREFIX + "/Param/EnablePYLONTECH", (CAN_EnablePylonTech() == true) ? "ON" : "OFF" );
-  client.publish(MQTT_PREFIX + "/Param/ForceCharge", (CAN_ForceCharge() == true) ? "ON" : "OFF" );  
-  client.publish(MQTT_PREFIX + "/Param/DischargeEnable", (CAN_DischargeEnable() == true) ? "ON" : "OFF" ); 
-  client.publish(MQTT_PREFIX + "/Param/ChargeEnable", (CAN_ChargeEnable() == true) ? "ON" : "OFF" ); 
+  if (client.isMqttConnected()){
+    client.publish(MQTT_PREFIX + "/Param/EnablePYLONTECH", (CAN_EnablePylonTech() == true) ? "ON" : "OFF" );
+    client.publish(MQTT_PREFIX + "/Param/ForceCharge", (CAN_ForceCharge() == true) ? "ON" : "OFF" );  
+    client.publish(MQTT_PREFIX + "/Param/DischargeEnable", (CAN_DischargeEnable() == true) ? "ON" : "OFF" ); 
+    client.publish(MQTT_PREFIX + "/Param/ChargeEnable", (CAN_ChargeEnable() == true) ? "ON" : "OFF" ); 
+    return true;
+  } else  
+    return false;
 }
 
 void onConnectionEstablished()

@@ -1,9 +1,6 @@
-Victron is building wonderful devices for Solar systems.
-Some of the devices have a VE.Direct interface and Victron disclosed the protocol.
+VE.Direct2MQTT is using an ESP32 developers board and the Arduino IDE to send all ASCII data coming from a VE.Direct device to a MQTT server and over CAN BUS to most inverters that support the PylonTech protocol, Full PylonTech protcol can be disabled and only the basic commands sent.
 
 - See also: https://www.victronenergy.com/live/vedirect_protocol:faq
-
-VE.Direct2MQTT is using an ESP32 developers board and the Arduino IDE to send all ASCII data coming from a VE.Direct device to a MQTT server and over CAN BUS to most inverters that support the PylonTech protocol, Full PylonTech protcol can be disabled and only the basic commands sent.
 
 With the help of the MQTT server you can integrate the monitoring data to virtually any Home Automation System. I use Home Assistant to automate off peak battery charging (using Force Charge) and can also enable and disable the charging and discharging.
 

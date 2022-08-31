@@ -37,23 +37,30 @@
 typedef struct VEDirectKeyValue_t {
   String key;
   String value;
-};
+} _VEDirectKeyValue;
 
 typedef struct VEDirectBlock_t {
   VEDirectKeyValue_t b[MAX_KEY_VALUE_COUNT];
   int kvCount;
   int serial;
-};
+} _VEDirectBlock;
 
-
-
+enum VEDirectCommands{
+VEDirectSOC = 0x0FFF,
+VEDirectV = 0xED8D,
+VEDirectC = 0xED8F,
+VEDirectUsedAh = 0xEEFF,
+VEDirectTemp = 0xEDEC,
+VEDirectSyncState = 0xEEB6
+} _VEDirectCommands; 
 
 class VEDirect {
   public:
+
     void begin();
     boolean addToASCIIBlock(String s);
     boolean getNewestBlock(VEDirectBlock_t *b);
-
+    void sendCommand(VEDirectCommands);
 
   private:
 
@@ -137,6 +144,7 @@ int VEDirect::_getNewestBlock() {
 boolean VEDirect::_endOfASCIIBlock(StringSplitter *s) {
   if ( s->getItemAtIndex(0).equals("Checksum")) {
     // To Do: checksum test
+    
     return true;
   }
   return false;
