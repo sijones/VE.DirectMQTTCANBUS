@@ -64,7 +64,7 @@ EspMQTTClient client(
     mqtt_port);
 
 #include "TimeLib.h"
-#include "vedirectEEPROM.h"
+#include "EEPROM.h"
 mEEPROM pref;
 #include "VEDirect.h"
 
@@ -73,14 +73,14 @@ time_t last_boot;
 #ifdef USE_CANBUS
 #include <SPI.h>
 #include <mcp_can.h>              // Library for CAN Interface      https://github.com/coryjfowler/MCP_CAN_lib
-#include "CANBUSBMS.h" 
+#include "CANBUS.h" 
 uint32_t SendCanBusMQTTUpdates;
 #endif
 
-#include "vedirectMQTT.h"
+#include "MQTT.h"
 
 #ifdef USE_ONEWIRE
-#include "vedirectONEWIRE.h"
+#include "ONEWIRE.h"
 #endif
 
 VEDirect ve;
