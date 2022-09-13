@@ -1,36 +1,34 @@
 void onMessageReceived(const String& topic, const String& message) 
 {
-#ifdef USE_CANBUS
   if (topic == MQTT_PREFIX + "/set/" + "DischargeCurrent") {
-    CAN_SetDischargeCurrent(message.toInt());
+    Inverter.SetDischargeCurrent(message.toInt());
     client.publish(MQTT_PREFIX + "/Param/DischargeCurrent", message);
   }
   else if (topic == MQTT_PREFIX + "/set/" + "ChargeVoltage") {
     if (message.toInt() > 0) {
-      CAN_SetChargeVoltage(message.toInt());
+      Inverter.SetChargeVoltage(message.toInt());
       client.publish(MQTT_PREFIX + "/Param/ChargeVoltage", message);
     }
   }
   else if (topic == MQTT_PREFIX + "/set/" + "ChargeCurrent") {
-   CAN_SetChargeCurrent(message.toInt());
+   Inverter.SetChargeCurrent(message.toInt());
    client.publish(MQTT_PREFIX + "/Param/ChargeCurrent", message);
   }
   else if (topic == MQTT_PREFIX + "/set/" + "ForceCharge") {
-    CAN_ForceCharge((message == "ON") ? true : false);
-    client.publish(MQTT_PREFIX + "/Param/ForceCharge", (CAN_ForceCharge() == true) ? "ON" : "OFF" ); }
+    Inverter.ForceCharge((message == "ON") ? true : false);
+    client.publish(MQTT_PREFIX + "/Param/ForceCharge", (Inverter.ForceCharge() == true) ? "ON" : "OFF" ); }
   else if (topic == MQTT_PREFIX + "/set/" + "DischargeEnable") {
-    CAN_DischargeEnable((message == "ON") ? true : false); 
-    client.publish(MQTT_PREFIX + "/Param/DischargeEnable", (CAN_DischargeEnable() == true) ? "ON" : "OFF" ); }
+    Inverter.DischargeEnable((message == "ON") ? true : false); 
+    client.publish(MQTT_PREFIX + "/Param/DischargeEnable", (Inverter.DischargeEnable() == true) ? "ON" : "OFF" ); }
   else if (topic == MQTT_PREFIX + "/set/" + "ChargeEnable") {
-    CAN_ChargeEnable((message == "ON") ? true : false); 
-    client.publish(MQTT_PREFIX + "/Param/ChargeEnable", (CAN_ChargeEnable() == true) ? "ON" : "OFF" ); }
+    Inverter.ChargeEnable((message == "ON") ? true : false); 
+    client.publish(MQTT_PREFIX + "/Param/ChargeEnable", (Inverter.ChargeEnable() == true) ? "ON" : "OFF" ); }
   else if (topic == MQTT_PREFIX + "/set/" + "EnablePYLONTECH") {
-    CAN_EnablePylonTech((message == "ON") ? true : false); 
-    client.publish(MQTT_PREFIX + "/Param/EnablePYLONTECH", (CAN_EnablePylonTech() == true) ? "ON" : "OFF" ); }
+    Inverter.EnablePylonTech((message == "ON") ? true : false); 
+    client.publish(MQTT_PREFIX + "/Param/EnablePYLONTECH", (Inverter.EnablePylonTech() == true) ? "ON" : "OFF" ); }
   else {
     client.publish(MQTT_PREFIX + "/LastMessage", "Command not recognised, Topic: " + topic + " - Payload: " + message);
   }
-#endif
 }
 
 //
@@ -57,10 +55,10 @@ bool sendASCII2MQTT(VEDirectBlock_t * block) {
 bool sendUpdateMQTTData()
 {
   if (client.isMqttConnected()){
-    client.publish(MQTT_PREFIX + "/Param/EnablePYLONTECH", (CAN_EnablePylonTech() == true) ? "ON" : "OFF" );
-    client.publish(MQTT_PREFIX + "/Param/ForceCharge", (CAN_ForceCharge() == true) ? "ON" : "OFF" );  
-    client.publish(MQTT_PREFIX + "/Param/DischargeEnable", (CAN_DischargeEnable() == true) ? "ON" : "OFF" ); 
-    client.publish(MQTT_PREFIX + "/Param/ChargeEnable", (CAN_ChargeEnable() == true) ? "ON" : "OFF" ); 
+    client.publish(MQTT_PREFIX + "/Param/EnablePYLONTECH", (Inverter.EnablePylonTech() == true) ? "ON" : "OFF" );
+    client.publish(MQTT_PREFIX + "/Param/ForceCharge", (Inverter.ForceCharge() == true) ? "ON" : "OFF" );  
+    client.publish(MQTT_PREFIX + "/Param/DischargeEnable", (Inverter.DischargeEnable() == true) ? "ON" : "OFF" ); 
+    client.publish(MQTT_PREFIX + "/Param/ChargeEnable", (Inverter.ChargeEnable() == true) ? "ON" : "OFF" ); 
     return true;
   } else  
     return false;

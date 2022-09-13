@@ -70,12 +70,9 @@ mEEPROM pref;
 
 time_t last_boot;
 
-#ifdef USE_CANBUS
-#include <SPI.h>
-#include <mcp_can.h>              // Library for CAN Interface      https://github.com/coryjfowler/MCP_CAN_lib
 #include "CANBUS.h" 
 uint32_t SendCanBusMQTTUpdates;
-#endif
+CANBUS Inverter;
 
 #include "MQTT.h"
 
@@ -85,6 +82,59 @@ uint32_t SendCanBusMQTTUpdates;
 
 VEDirect ve;
 time_t last_vedirect;
+
+void UpdateCanBusData(VEDirectBlock_t * block) {
+  for (int i = 0; i < block->kvCount; i++) {
+    bool dataValid = false;
+    String key = block->b[i].key;
+    String value = block->b[i].value;
+    String parsedValue = "";
+    if (value.startsWith("-"))
+      parsedValue = "-";
+
+    for (auto x : value)
+    {
+      if (isDigit(x))
+        parsedValue += x;
+    }
+    if (parsedValue.length() > 0)
+      dataValid = true;
+
+    //int intValue = parsedValue.toInt();
+    //if ( espMQTT.publish(topic.c_str(), value.c_str())) {
+    //  log_i("MQTT message sent succesfully: %s: \"%s\"", topic.c_str(), value.c_str());
+    //} else {
+    //  log_e("Sending MQTT message failed: %s: %s", topic.c_str(), value.c_str());
+    //}
+
+    if (key.compareTo(String('V')) == 0)
+    {
+      log_i("Battery Voltage Update: %sV", parsedValue.c_str());
+      if (dataValid) Inverter.BattVoltage((uint16_t) round(parsedValue.toInt() * 0.1));
+    }
+    
+    if (key.compareTo(String('I')) == 0)
+    {
+      log_i("Battery Current Update: %smA",parsedValue.c_str());
+      if (dataValid) Inverter.BattCurrentmA((int32_t) (parsedValue.toInt() *0.01 ));
+    }
+
+    if (key.compareTo(String("SOC")) == 0)
+    {
+      log_i("Battery SOC Update: %s%%",parsedValue.c_str());
+      if (dataValid) Inverter.BattSOC((uint8_t) round((parsedValue.toInt()*0.1)));
+    }
+    
+   /* if (key.compareTo(String('SOC')) == 0)
+    {
+      log_i("Battery Temp Update: %sC",parsedValue.c_str());
+      BattTemp((uint16_t) (parsedValue.toInt()*0.1));
+    } */
+    
+
+  }
+}
+
 
 
 void setup() {
@@ -115,23 +165,17 @@ void setup() {
   if (client.isWifiConnected()) {
  //   setClock();
  //   last_boot = time(nullptr);
-    if (client.isWifiConnected()
-#ifdef USE_CANBUS
-  && CAN_Begin()
-#endif
-    ) {
+    if (client.isWifiConnected() && Inverter.Begin(CAN_CS_PIN)) {
 
-#ifdef USE_CANBUS
-      CAN_SetChargeVoltage(initBattChargeVoltage);
-      CAN_SetChargeCurrent(initBattChargeCurrent);
-      CAN_SetDischargeVoltage(initBattDischargeVoltage);
-      CAN_SetDischargeCurrent(initBattDischargeCurrent);
-      CAN_SetBattCapacity(initBattCapacity);
+      Inverter.SetChargeVoltage(initBattChargeVoltage);
+      Inverter.SetChargeCurrent(initBattChargeCurrent);
+      Inverter.SetDischargeVoltage(initBattDischargeVoltage);
+      Inverter.SetDischargeCurrent(initBattDischargeCurrent);
+      Inverter.SetBattCapacity(initBattCapacity);
 #ifdef USE_PYLONTECH
-      CAN_EnablePylonTech(true);
+      Inverter.EnablePylonTech(true);
 #endif
       SendCanBusMQTTUpdates = millis();
-#endif
       ve.begin();
       // looking good; moving to loop
       return;
@@ -163,16 +207,15 @@ void loop() {
     if ( ve.getNewestBlock(&block)) {
       last_vedirect = t;
       log_i("New block arrived; Value count: %d, serial %d", block.kvCount, block.serial);
-#ifdef USE_CANBUS
       UpdateCanBusData(&block);
-      CAN_SendAllUpdate();
-      if ( ((millis() - SendCanBusMQTTUpdates) > 15000) || CAN_DataChanged() )
+      Inverter.SendAllUpdates();
+      if ( ((millis() - SendCanBusMQTTUpdates) > 15000) || Inverter.DataChanged() )
       {
           log_i("Sending Switch Update Data");
           SendCanBusMQTTUpdates = millis();
           sendUpdateMQTTData();        
       }
-#endif
+
       if (client.isMqttConnected()) {
         sendASCII2MQTT(&block);
       }

@@ -35,11 +35,7 @@
    or Acitve/Passive mode
 */
 
-// To use CANBus set the below
-#define USE_CANBUS
-
-#ifdef USE_CANBUS
-#define CAN_INT 22                        // CAN Init Pin for M5Stack
+//#define CAN_INT 22                        // CAN Init Pin for M5Stack
 #define CAN_CS_PIN 2                      // CAN CS PIN
 #define initBattChargeVoltage 56000       // Battery Charge Voltage sent to inverter
 #define initBattDischargeVoltage 45000    // Battery discharge voltage, not currently used
@@ -50,7 +46,6 @@
 // To use PYLONTECH Protocol enable below
 #define USE_PYLONTECH
 
-#endif
 // use SSL to connect to MQTT Server or OTA Server
 // it is strongly recommended to use SSL if you send any password over the net
 // connectiong to MQTT might need a password; the same for OTA
