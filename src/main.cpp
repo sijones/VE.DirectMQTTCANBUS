@@ -50,9 +50,13 @@
    So please see there for WiFi, MQTT and OTA configuration
 */
 #include <Arduino.h>
+#include "FS.h"
+#include "SPIFFS.h"
 #include "config.h"
 
 #include "EspMQTTClient.h"
+#include "EEPROM.h"
+mEEPROM pref;
 
 EspMQTTClient client(
     ssid,
@@ -64,12 +68,7 @@ EspMQTTClient client(
     mqtt_port);
 
 #include "TimeLib.h"
-#include "EEPROM.h"
-mEEPROM pref;
 #include "VEDirect.h"
-
-time_t last_boot;
-
 #include "CANBUS.h" 
 uint32_t SendCanBusMQTTUpdates;
 CANBUS Inverter;
@@ -80,8 +79,10 @@ CANBUS Inverter;
 #include "ONEWIRE.h"
 #endif
 
+time_t last_boot;
 VEDirect ve;
-time_t last_vedirect;
+//time_t last_vedirect;
+uint32_t last_vedirect_millis;
 
 void UpdateCanBusData(VEDirectBlock_t * block) {
   for (int i = 0; i < block->kvCount; i++) {
@@ -155,18 +156,17 @@ void setup() {
 //#endif
 
 //Wait here while wifi is connecting
-  client.loop();
+/*  client.loop();
   log_i("Entering loop to wait for WiFi connection");
   while (!client.isWifiConnected()){
     delay(25);
     client.loop();
     }
-
-  if (client.isWifiConnected()) {
+*/
+  //if (client.isWifiConnected()) {
  //   setClock();
  //   last_boot = time(nullptr);
-    if (client.isWifiConnected() && Inverter.Begin(CAN_CS_PIN)) {
-
+    if (Inverter.Begin(CAN_CS_PIN)) {
       Inverter.SetChargeVoltage(initBattChargeVoltage);
       Inverter.SetChargeCurrent(initBattChargeCurrent);
       Inverter.SetDischargeVoltage(initBattDischargeVoltage);
@@ -176,12 +176,13 @@ void setup() {
       Inverter.EnablePylonTech(true);
 #endif
       SendCanBusMQTTUpdates = millis();
+      last_vedirect_millis = millis();
       ve.begin();
       // looking good; moving to loop
       return;
     }
-  }
-  // oh oh, we did not get WiFi or MQTT (CANBUS if enabled), that is bad; we can't continue
+ // }
+  // oh oh, we did not get CANBUS, that is bad; we can't continue
   // wait a while and reboot to try again
   delay(5000);
   ESP.restart();
@@ -189,7 +190,7 @@ void setup() {
 
 void loop() {
   VEDirectBlock_t block;
-  time_t t = time(nullptr);
+  //time_t t = time(nullptr);
   // MQTT Processing loop
   client.loop();
 
@@ -203,12 +204,15 @@ void loop() {
   }
 #endif
 
-  if ( abs( t - last_vedirect) >= VE_WAIT_TIME) {
+  //if ( abs( t - last_vedirect) >= VE_WAIT_TIME) {
+  if ((millis() - last_vedirect_millis) >= VE_WAIT_TIME_MS) {
     if ( ve.getNewestBlock(&block)) {
-      last_vedirect = t;
+      //last_vedirect = t;
+      last_vedirect_millis = millis();
       log_i("New block arrived; Value count: %d, serial %d", block.kvCount, block.serial);
       UpdateCanBusData(&block);
-      Inverter.SendAllUpdates();
+      // The send CAN Bus data is handled in a task every second.
+      //Inverter.SendAllUpdates();
       if ( ((millis() - SendCanBusMQTTUpdates) > 15000) || Inverter.DataChanged() )
       {
           log_i("Sending Switch Update Data");
@@ -220,5 +224,12 @@ void loop() {
         sendASCII2MQTT(&block);
       }
     }
+    // If CAN Bus has failed to send to many packets we reboot
+    if (Inverter.CanBusFailed()){
+      log_e("Can Bus has too many failed sending events, rebooting.");
+      delay(50);
+      ESP.restart();
+    }
+    
   }
 }

@@ -54,33 +54,37 @@ bool _initialChargeCurrent = false;
 bool _initialDischargeVoltage = false;
 bool _initialDischargeCurrent = false;
 bool _initialDone = false;
+bool _initialConfig = false;
+bool _initialBattData = false;
 
     // Used to tell the inverter battery data
-uint8_t _battSOC = 50;
-uint8_t _battSOH = 100; // State of health, not useful so defaulted to 100% 
-uint16_t _battVoltage;
-int32_t _battCurrentmA;
-int16_t _battTemp;
+volatile uint8_t _battSOC = 0;
+volatile uint8_t _battSOH = 100; // State of health, not useful so defaulted to 100% 
+volatile uint16_t _battVoltage = 0;
+volatile int32_t _battCurrentmA = 0;
+volatile int16_t _battTemp = 10;
 uint32_t _battCapacity = 0; // Only used for limiting current at high SOC.
 
     // Used to tell the inverter battery limits
-uint32_t _chargeVoltage = 0;
-uint32_t _dischargeVoltage = 0; 
-uint32_t _chargeCurrentmA = 0;
-uint32_t _dischargeCurrentmA = 0;
+volatile uint32_t _chargeVoltage = 0;
+volatile uint32_t _dischargeVoltage = 0; 
+volatile uint32_t _chargeCurrentmA = 0;
+volatile uint32_t _dischargeCurrentmA = 0;
 
   // These are set by the initial call to set Current Limits and used as the max.
 uint32_t _maxChargeCurrentmA = 0;
 uint32_t _maxDischargeCurrentmA = 0;
 
 // Track how many failed CAN BUS sends and reboot ESP if more than limit
-uint8_t _maxFailedAttempts = 10;
-uint8_t _failedAttemptsCount = 0;
+uint8_t _maxFailedCanSendCount = 20;
+uint8_t _failedCanSendCount = 0;
 
 uint32_t LoopTimer; // store current time
 // The interval for sending the inverter updated information
 // Normally around 5 seconds is ok, but for Pylontech protocol it's around every second.
 uint16_t _CanBusSendInterval = 1000; 
+// Task Handle
+TaskHandle_t tHandle = NULL;
 
 public:
 
@@ -104,38 +108,29 @@ public:
   void SetDischargeCurrent(uint32_t CurrentmA);
   void ChargeEnable(bool);
   void DischargeEnable(bool);
-
+  bool AllReady();
   void ForceCharge(bool);
-  bool Initialised(void){return _initialised;}
-// Next function makes sure we only start sending data to inverter when we have configuration and valid battery data
-  bool AllReady(){
-                    if (_initialDone) return true;
-                    else if (_initialBattSOC && _initialBattVoltage && _initialBattCurrent &&
-                    _initialChargeVoltage && _initialChargeCurrent && _initialDischargeVoltage && _initialDischargeCurrent)
-                    {
-                      _dischargeCurrentmA = _maxDischargeCurrentmA;
-                      _chargeCurrentmA = _maxChargeCurrentmA;
-                      _initialDone = true;
-                      return true;
-                    } else 
-                      return false;}
+  bool Initialised(){return _initialised;}
+  bool Configured();
 
-void BattSOC(uint8_t soc){_initialBattSOC = true; _battSOC = soc;}
-void BattVoltage(uint16_t voltage){_initialBattVoltage = true; _battVoltage = voltage;}
-void BattSOH(uint8_t soh){_battSOH = soh;}
-void BattCurrentmA(int32_t currentmA){_initialBattCurrent = true; _battCurrentmA = currentmA;}
-void BattTemp(int16_t batttemp){_battTemp = batttemp;}
-void SetBattCapacity(uint32_t BattCapacity){_battCapacity = BattCapacity;} 
-void EnablePylonTech(bool State) {_enablePYLONTECH = State;} 
+  
+  void BattSOC(uint8_t soc){_initialBattSOC = true; _battSOC = soc;}
+  void BattVoltage(uint16_t voltage){_initialBattVoltage = true; _battVoltage = voltage;}
+  void BattSOH(uint8_t soh){_battSOH = soh;}
+  void BattCurrentmA(int32_t currentmA){_initialBattCurrent = true; _battCurrentmA = currentmA;}
+  void BattTemp(int16_t batttemp){_battTemp = batttemp;}
+  void SetBattCapacity(uint32_t BattCapacity){_battCapacity = BattCapacity;} 
+  void EnablePylonTech(bool State) {_enablePYLONTECH = State;} 
 
-uint8_t BattSOC(){return _battSOC;}
-uint16_t BattVoltage(){return _battVoltage;}
-uint8_t BattSOH(){return _battSOH;}
-int32_t BattCurrentmA(){return _battCurrentmA;}
-int16_t BattTemp(){return _battTemp;} 
-bool ForceCharge(){return _forceCharge;}
-bool ChargeEnable(){return _chargeEnabled;}
-bool DischargeEnable(){return _dischargeEnabled;}
-bool EnablePylonTech(){return _enablePYLONTECH;}
+  uint8_t BattSOC(){return _battSOC;}
+  uint16_t BattVoltage(){return _battVoltage;}
+  uint8_t BattSOH(){return _battSOH;}
+  int32_t BattCurrentmA(){return _battCurrentmA;}
+  int16_t BattTemp(){return _battTemp;}
+  bool ForceCharge(){return _forceCharge;}
+  bool ChargeEnable(){return _chargeEnabled;}
+  bool DischargeEnable(){return _dischargeEnabled;}
+  bool EnablePylonTech(){return _enablePYLONTECH;}
+  bool CanBusFailed(){return _failedCanSendCount > _maxFailedCanSendCount;}
 
 }; // End of Class

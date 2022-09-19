@@ -1,13 +1,26 @@
 #include "CANBUS.h"
 
+void canSendTask(void * pointer){
+  CANBUS *Inverter = (CANBUS *) pointer;
+  log_i("Starting CAN Bus send task");
+  for (;;) {
+    if(Inverter->SendAllUpdates())
+        log_d("Success from SendAllUpdates");
+      else
+        log_e("Failure returned from SendAllUpdates");
+    vTaskDelay(1000 / portTICK_PERIOD_MS);
+  }
+
+}
+
 bool CANBUS::Begin(uint8_t _CS_PIN) {
 
-    if (CAN != NULL)
-    {
-        delete(CAN);
-    }
+  if (CAN != NULL)
+  {
+    delete(CAN);
+  }
    
-    CAN = new MCP_CAN(_CS_PIN);
+  CAN = new MCP_CAN(_CS_PIN);
 
   log_i("CAN Bus Initialising");
   // Initialize MCP2515 running at 8MHz with a baudrate of 500kb/s and the masks and filters disabled.
@@ -21,21 +34,33 @@ bool CANBUS::Begin(uint8_t _CS_PIN) {
     }
   else
   {
-    log_i("CAN Bus Failed to Initialise");
+    log_e("CAN Bus Failed to Initialise");
     _initialised = false;
     return false;
   }
+
+  // Create a task to send the CAN Bus data so Wifi/MQTT doesn't
+  // interfere with it.
+  xTaskCreate(
+    &canSendTask,    
+    "canSendTask",  
+    10000,            
+    this,             
+    2,                
+    &tHandle);       
+
   return true;
 }
 
 bool CANBUS::SendAllUpdates()
 {
+  log_i("Sending all CAN Bus Data");
   // Turn off force charge, this is defined in PylonTech Protocol
   if (_battSOC > 96 && _forceCharge){
     ForceCharge(false);
   }
 
-  if (_battCapacity > 0){
+  if (_battCapacity > 0 && _initialBattData){
     if(_battSOC > 95)
       _chargeCurrentmA = (_battCapacity / 20);
     else if(_battSOC > 90)
@@ -43,14 +68,36 @@ bool CANBUS::SendAllUpdates()
     else
       _chargeCurrentmA = _maxChargeCurrentmA;
   }
-  if (Initialised() && AllReady() && ((millis() - LoopTimer) > _CanBusSendInterval))
+
+  if(!_initialBattCurrent)
+    log_i("Waiting on VE Initial Battery Current.");
+  if(!_initialBattVoltage)
+    log_i("Waiting on VE Initial Battery Voltage.");
+  if(!_initialBattSOC)
+    log_i("Waiting on VE Initial Battery SOC.");
+  if(!_initialChargeCurrent)
+    log_e("Initial Charge Current needs to be set.");
+  if(!_initialChargeVoltage)
+    log_e("Initial Charge Voltage needs to be set.");
+  if(!_initialDischargeCurrent)
+    log_e("Initial Discharge Current needs to be set.");
+  if(!_initialDischargeVoltage)
+    log_e("Initial Discharge Voltage needs to be set.");
+  
+  //if (Initialised() && AllReady() && ((millis() - LoopTimer) > _CanBusSendInterval))
+  if (Initialised() && Configured())
   {
     if (SendParamUpdate() && SendBattUpdate()) {
-      LoopTimer = millis();
+      //LoopTimer = millis();
       return true;
       } else return false;
   } 
-  else return false;
+  else 
+  {
+    log_e("CAN Bus Data not Initialised or Configured");
+    return false;
+  }
+    
 }
 
 bool CANBUS::SendBattUpdate()
@@ -62,21 +109,21 @@ bool CANBUS::SendBattUpdate(uint8_t SOC, uint16_t Voltage, int32_t CurrentmA, in
 {
   byte sndStat;
   // Send SOC and SOH first
-  if (!Initialised() && !AllReady()) return false;
+  if (!Initialised() && !Configured()) return false;
 
   if(_enablePYLONTECH) {
-    CAN_MSG[0] = lowByte(_battSOC);
-    CAN_MSG[1] = highByte(_battSOC);
+    CAN_MSG[0] = lowByte(SOC);
+    CAN_MSG[1] = highByte(SOC);
   } else if (_forceCharge) {
     CAN_MSG[0] = lowByte((int8_t) 1);
     CAN_MSG[1] = highByte((int8_t) 1);
   } else {
-    CAN_MSG[0] = lowByte(_battSOC);
-    CAN_MSG[1] = highByte(_battSOC);
+    CAN_MSG[0] = lowByte(SOC);
+    CAN_MSG[1] = highByte(SOC);
   }
 
-  CAN_MSG[2] = lowByte(_battSOH);
-  CAN_MSG[3] = highByte(_battSOH);
+  CAN_MSG[2] = lowByte(SOH);
+  CAN_MSG[3] = highByte(SOH);
   CAN_MSG[4] = 0;
   CAN_MSG[5] = 0;
   CAN_MSG[6] = 0;
@@ -84,34 +131,38 @@ bool CANBUS::SendBattUpdate(uint8_t SOC, uint16_t Voltage, int32_t CurrentmA, in
 
   sndStat = CAN->sendMsgBuf(0x355, 0, 4, CAN_MSG);
   if(sndStat == CAN_OK){
+    _failedCanSendCount = 0;
     log_i("Inverter SOC Battery update via CAN Bus sent.");
   } else {
-    log_i("Inverter SOC Battery update via CAN Bus failed.");
+    _failedCanSendCount++;
+    log_e("Inverter SOC Battery update via CAN Bus failed.");
   }
   delay(_canSendDelay);
 
   // Current measured values of the BMS battery voltage, battery current, battery temperature
 
-  CAN_MSG[0] = lowByte(uint16_t(_battVoltage));
-  CAN_MSG[1] = highByte(uint16_t(_battVoltage));
-  CAN_MSG[2] = lowByte(uint16_t(_battCurrentmA));
-  CAN_MSG[3] = highByte(uint16_t(_battCurrentmA));
-  CAN_MSG[4] = lowByte(uint16_t(_battTemp * 10));
-  CAN_MSG[5] = highByte(uint16_t(_battTemp * 10));
+  CAN_MSG[0] = lowByte(uint16_t(Voltage));
+  CAN_MSG[1] = highByte(uint16_t(Voltage));
+  CAN_MSG[2] = lowByte(uint16_t(CurrentmA));
+  CAN_MSG[3] = highByte(uint16_t(CurrentmA));
+  CAN_MSG[4] = lowByte(uint16_t(BattTemp * 10));
+  CAN_MSG[5] = highByte(uint16_t(BattTemp * 10));
   CAN_MSG[6] = 0x00;
   CAN_MSG[7] = 0x00;
 
   sndStat = CAN->sendMsgBuf(0x356, 0, 8, CAN_MSG);
 
   if(sndStat == CAN_OK){
+    _failedCanSendCount = 0;
     log_i("Inverter Battery Voltage, Current update via CAN Bus sent.");
   } else {
-    log_i("Inverter Battery Voltage, Current update via CAN Bus failed.");
+    _failedCanSendCount++;
+    log_e("Inverter Battery Voltage, Current update via CAN Bus failed.");
   }
 
   delay(_canSendDelay);
 
-  if (_enablePYLONTECH){
+  //if (_enablePYLONTECH){
     //0x359 – 00 00 00 00 0A 50 4E – Protection & Alarm flags
     CAN_MSG[0] = 0x00;
     CAN_MSG[1] = 0x00;
@@ -123,6 +174,13 @@ bool CANBUS::SendBattUpdate(uint8_t SOC, uint16_t Voltage, int32_t CurrentmA, in
     CAN_MSG[7] = 0x00;
 
     sndStat = CAN->sendMsgBuf(0x359, 0, 8, CAN_MSG);
+    if(sndStat == CAN_OK){
+      _failedCanSendCount = 0;
+      log_i("Inverter Protection / Alarm Flags via CAN Bus sent.");
+    } else {
+      _failedCanSendCount++;
+      log_e("Inverter Protection / Alarm Flags via CAN Bus failed.");
+    }
     delay(_canSendDelay); 
 
     //0x35C – C0 00 – Battery charge request flags
@@ -139,8 +197,15 @@ bool CANBUS::SendBattUpdate(uint8_t SOC, uint16_t Voltage, int32_t CurrentmA, in
     CAN_MSG[7] = 0x00;
 
     sndStat = CAN->sendMsgBuf(0x35C, 0, 2, CAN_MSG);
+    if(sndStat == CAN_OK){
+      _failedCanSendCount = 0;
+      log_i("Battery Charge Flags via CAN Bus sent.");
+    } else {
+      _failedCanSendCount++;
+      log_e("Battery Charge Flags via CAN Bus failed.");
+    }
     delay(_canSendDelay); 
-  }
+  //}
   return true;
 }
 
@@ -204,22 +269,21 @@ bool CANBUS::DataChanged(){
 }
 
 
-
 bool CANBUS::SendParamUpdate(){
 
   byte sndStat;
 
-  if (!Initialised() && !AllReady()) return false;
+  if (!Initialised() && !Configured()) return false;
   
   // Send PYLON String if enabled
-  if(_enablePYLONTECH) {
+  //if(_enablePYLONTECH) {
     sndStat = CAN->sendMsgBuf(0x35E, 0, 8, MSG_PYLON);
     if (sndStat == CAN_OK){
       log_i("Sent PYLONTECH String.");
     }  else
       log_i("Failed to send PYLONTECH String.");
     delay(_canSendDelay);
-  }
+  //}
 
   // Battery charge and discharge parameters
   CAN_MSG[0] = lowByte(_chargeVoltage / 100);              // Maximum battery voltage
@@ -252,4 +316,41 @@ bool CANBUS::SendParamUpdate(){
 
   return true;
 
+}
+
+bool CANBUS::AllReady()
+{
+  if (_initialDone) return true;
+  else if (_initialBattSOC && _initialBattVoltage && _initialBattCurrent &&
+          _initialChargeVoltage && _initialChargeCurrent && _initialDischargeVoltage && _initialDischargeCurrent)
+    {
+      _dischargeCurrentmA = _maxDischargeCurrentmA;
+      _chargeCurrentmA = _maxChargeCurrentmA;
+      _initialDone = true;
+      _initialConfig = true;
+      _initialBattData = true;
+      return true;
+    } 
+  else if (_initialChargeVoltage && _initialChargeCurrent 
+            && _initialDischargeVoltage && _initialDischargeCurrent &&(!_initialConfig))
+    { 
+      _initialConfig = true;
+      return false;
+    }
+  else 
+    return false;
+}
+
+bool CANBUS::Configured()
+{
+  AllReady(); // Check if we need to set the flags
+
+  if (_initialConfig) return true;
+  else if (_initialChargeVoltage && _initialChargeCurrent 
+      && _initialDischargeVoltage && _initialDischargeCurrent)
+      {
+        _initialConfig = true;
+        return true;
+      }
+  else return false;
 }

@@ -110,14 +110,12 @@ void serialTask(void * pointer) {
 }
 
 
-
-
 void VEDirect::begin() {
   _newest_block = -1;
   _incoming_block = _incoming_keyValueCount = 0;
   // create a task to handle the serial input
   xTaskCreate(
-    serialTask,     /* Task function. */
+    &serialTask,     /* Task function. */
     "serialTask",  /* String with name of task. */
     10000,            /* Stack size in bytes. */
     this,             /* Parameter passed as input of the task */
@@ -154,7 +152,7 @@ boolean VEDirect::addToASCIIBlock(String s) {
   StringSplitter sp = StringSplitter(s, '\t', 2);
   String historical = "";
   if ( sp.getItemCount() == 2) { // sometime checksum has historical data attached
-    log_d("Received Key/value: \"%s\":\"%s\"", sp.getItemAtIndex(0).c_str(), sp.getItemAtIndex(1).c_str());
+    log_v("Received Key/value: \"%s\":\"%s\"", sp.getItemAtIndex(0).c_str(), sp.getItemAtIndex(1).c_str());
     if ( _incoming_keyValueCount < MAX_KEY_VALUE_COUNT) {
       block[_incoming_block].b[_incoming_keyValueCount].key = sp.getItemAtIndex(0);
       if ( sp.getItemAtIndex(0).equals("Checksum")) {
@@ -170,7 +168,7 @@ boolean VEDirect::addToASCIIBlock(String s) {
         // historical data
         block[_incoming_block].b[_incoming_keyValueCount].key = "Historical";
         block[_incoming_block].b[_incoming_keyValueCount].value = historical;
-        log_d("Historical data:\"%s\"", historical.c_str());
+        log_v("Historical data:\"%s\"", historical.c_str());
         block[_incoming_block].kvCount = ++_incoming_keyValueCount;
       }
     } else {

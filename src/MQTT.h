@@ -43,7 +43,7 @@ bool sendASCII2MQTT(VEDirectBlock_t * block) {
       topic.replace("#", ""); // # in a topic is a no go for MQTT
       value.replace("\r\n", "");
       if ( client.publish(topic.c_str(), value.c_str())) {
-        log_i("MQTT message sent succesfully: %s: \"%s\"", topic.c_str(), value.c_str());
+        log_d("MQTT message sent succesfully: %s: \"%s\"", topic.c_str(), value.c_str());
         } else {
         log_e("Sending MQTT message failed: %s: %s", topic.c_str(), value.c_str());
         }
@@ -66,6 +66,6 @@ bool sendUpdateMQTTData()
 
 void onConnectionEstablished()
 {
-  log_i("Wifi Connected");
+  log_i("Wifi / MQTT Connected");
   client.subscribe(MQTT_PREFIX + "/set/#", onMessageReceived);
 }
