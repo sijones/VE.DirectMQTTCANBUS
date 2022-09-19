@@ -35,7 +35,7 @@
    or Acitve/Passive mode
 */
 
-//#define CAN_INT 22                        // CAN Init Pin for M5Stack
+//#define CAN_INT 22                      // CAN Init Pin for M5Stack
 #define CAN_CS_PIN 2                      // CAN CS PIN
 #define initBattChargeVoltage 56000       // Battery Charge Voltage sent to inverter
 #define initBattDischargeVoltage 45000    // Battery discharge voltage, not currently used
@@ -44,7 +44,7 @@
 #define initBattCapacity 475000           // used for charge limits when batteries becoming full.
           
 // To use PYLONTECH Protocol enable below
-#define USE_PYLONTECH
+//#define USE_PYLONTECH
 
 // use SSL to connect to MQTT Server or OTA Server
 // it is strongly recommended to use SSL if you send any password over the net
@@ -146,14 +146,6 @@ String MQTT_ONEWIRE = "/Temp/OneWire";
 #endif
 
 
-#ifdef USE_OTA
-/*
-
-*/
-
-
-
-#endif
 
 /*
    Software serial parameter
@@ -192,3 +184,4 @@ String MQTT_ONEWIRE = "/Temp/OneWire";
    Packets during OTA or OneWire will be discarded
 */
 int VE_WAIT_TIME = 1; // in s
+uint16_t VE_WAIT_TIME_MS = 10;
