@@ -1,4 +1,10 @@
-VE.Direct2MQTT is using an ESP32 developers board and the Arduino IDE to send all ASCII data coming from a VE.Direct device to a MQTT server and over CAN BUS to most inverters that support the PylonTech protocol, Full PylonTech protcol can be disabled and only the basic commands sent.
+VE.Direct2MQTTCANBUS takes data from a Victron Smart Shunt and sends it to a inverter over CAN allowing for "DIY LifePO4" Batteries to be integrated.
+
+The data is also sent over MQTT and allows commands to be sent back to control Charge/Discharge/Force Charge.
+
+This software uses a ESP32 developers board with a MCP2515 Can Bus adapter currently developed using Visual Studio code.
+
+The software sends the data in Pylontech Protocol, most inverters should support this.
 
 - See also: https://www.victronenergy.com/live/vedirect_protocol:faq
 
