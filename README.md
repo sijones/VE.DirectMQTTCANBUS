@@ -18,7 +18,7 @@ With the help of the MQTT server you can integrate the monitoring data to virtua
 - OneWire temperature sensors will be supported in a future version
 - OTA (Over The Air Update)<br> use your browser and go to http://IPADDRESS/ota and upload the lastest binary.
 - One config file to enable/disable features and configure serial port or MQTT Topics
-
+- Works with both Victron Smart Shunt and BMV hardware
 
 ## Limitations
 - VE.Direct2MQTT is only listening to messages of the VE.Direct device<br>It understands only the "ASCII" part of the protocol that is only good to receive a set of values. You can't request any special data or change any parameters of the VE.Direct device.<br>
