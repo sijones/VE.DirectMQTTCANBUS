@@ -55,7 +55,7 @@
 #include "config.h"
 
 #include "EspMQTTClient.h"
-#include "EEPROM.h"
+#include "mEEPROM.h"
 mEEPROM pref;
 
 EspMQTTClient client(
@@ -136,8 +136,6 @@ void UpdateCanBusData(VEDirectBlock_t * block) {
   }
 }
 
-
-
 void setup() {
   Serial.begin(115200);
 
@@ -145,28 +143,8 @@ void setup() {
   client.enableHTTPWebUpdater("/ota");
   client.enableOTA(mqtt_password,8266);
 #endif
-
-  // fetch previously stored parameters from EEPROM
-  //VE_WAIT_TIME = pref.getInt("VE_WAIT_TIME", VE_WAIT_TIME);
-//#ifdef USE_OTA
-  //OTA_WAIT_TIME = pref.getInt("OTA_WAIT_TIME", OTA_WAIT_TIME);
-//#endif
-//#ifdef USE_ONEWIRE
-  //OW_WAIT_TIME = pref.getInt("OW_WAIT_TIME", OW_WAIT_TIME);
-//#endif
-
-//Wait here while wifi is connecting
-/*  client.loop();
-  log_i("Entering loop to wait for WiFi connection");
-  while (!client.isWifiConnected()){
-    delay(25);
-    client.loop();
-    }
-*/
-  //if (client.isWifiConnected()) {
- //   setClock();
- //   last_boot = time(nullptr);
-    if (Inverter.Begin(CAN_CS_PIN)) {
+  
+  if (Inverter.Begin(CAN_CS_PIN)) {
       Inverter.SetChargeVoltage(initBattChargeVoltage);
       Inverter.SetChargeCurrent(initBattChargeCurrent);
       Inverter.SetDischargeVoltage(initBattDischargeVoltage);
@@ -180,7 +158,7 @@ void setup() {
       ve.begin();
       // looking good; moving to loop
       return;
-    }
+  }
  // }
   // oh oh, we did not get CANBUS, that is bad; we can't continue
   // wait a while and reboot to try again

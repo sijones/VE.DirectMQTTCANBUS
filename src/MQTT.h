@@ -1,17 +1,17 @@
 void onMessageReceived(const String& topic, const String& message) 
 {
   if (topic == MQTT_PREFIX + "/set/" + "DischargeCurrent") {
-    Inverter.SetDischargeCurrent(message.toInt());
+    Inverter.SetDischargeCurrent((uint32_t) message.toInt());
     client.publish(MQTT_PREFIX + "/Param/DischargeCurrent", message);
   }
   else if (topic == MQTT_PREFIX + "/set/" + "ChargeVoltage") {
     if (message.toInt() > 0) {
-      Inverter.SetChargeVoltage(message.toInt());
+      Inverter.SetChargeVoltage((uint32_t) message.toInt());
       client.publish(MQTT_PREFIX + "/Param/ChargeVoltage", message);
     }
   }
   else if (topic == MQTT_PREFIX + "/set/" + "ChargeCurrent") {
-   Inverter.SetChargeCurrent(message.toInt());
+   Inverter.SetChargeCurrent((uint32_t) message.toInt());
    client.publish(MQTT_PREFIX + "/Param/ChargeCurrent", message);
   }
   else if (topic == MQTT_PREFIX + "/set/" + "ForceCharge") {

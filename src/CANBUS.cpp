@@ -49,6 +49,9 @@ bool CANBUS::Begin(uint8_t _CS_PIN) {
     2,                
     &tHandle);       
 
+// Get the Pylontech protocol setting from EEPROM if set.
+  if(pref.isKey(ccPylonTech))
+    _enablePYLONTECH = pref.getBool(ccPylonTech, _enablePYLONTECH);
   return true;
 }
 
@@ -186,9 +189,9 @@ bool CANBUS::SendBattUpdate(uint8_t SOC, uint16_t Voltage, int32_t CurrentmA, in
     //0x35C – C0 00 – Battery charge request flags
     CAN_MSG[0] = 0xC0;
     CAN_MSG[1] = 0x00;
-    if (_forceCharge) CAN_MSG[1] || bmsForceCharge;
-    if (_chargeEnabled) CAN_MSG[1] || bmsChargeEnable;
-    if (_dischargeEnabled) CAN_MSG[1] || bmsDischargeEnable;
+    if (_forceCharge) CAN_MSG[1] | bmsForceCharge;
+    if (_chargeEnabled) CAN_MSG[1] | bmsChargeEnable;
+    if (_dischargeEnabled) CAN_MSG[1] | bmsDischargeEnable;
     CAN_MSG[2] = 0x00;
     CAN_MSG[3] = 0x00;
     CAN_MSG[4] = 0x00;
@@ -211,16 +214,31 @@ bool CANBUS::SendBattUpdate(uint8_t SOC, uint16_t Voltage, int32_t CurrentmA, in
 
 
 void CANBUS::SetChargeVoltage(uint32_t Voltage){
-  _initialChargeVoltage = true; 
+ 
+  if(!_initialChargeVoltage)
+  {
+    _initialChargeVoltage = true;
+    if(!pref.isKey(ccChargeVolt)) 
+      pref.putUInt(ccChargeVolt,Voltage);
+    else
+      Voltage = pref.getUInt(ccChargeVolt,Voltage);
+  }
+
   if(_chargeVoltage != Voltage) {
     _dataChanged = true;
     _chargeVoltage = Voltage;
-    }
+    pref.putUInt(ccChargeVolt,Voltage);
   }
+
+}
 
 void CANBUS::SetChargeCurrent(uint32_t CurrentmA){
   if(!_initialChargeCurrent) {
-    _maxChargeCurrentmA = CurrentmA; 
+    if(!pref.isKey(ccChargeCurrent)) {
+      _maxChargeCurrentmA = CurrentmA; 
+      pref.putUInt(ccChargeCurrent,CurrentmA);
+    } else
+    _maxChargeCurrentmA = pref.getUInt(ccChargeCurrent,CurrentmA);
     _initialChargeCurrent = true; 
   }
   else if (_chargeCurrentmA != CurrentmA && _initialDone) { 
@@ -260,6 +278,10 @@ void CANBUS::DischargeEnable(bool State) {
   if (State != _dischargeEnabled) _dataChanged = true;
   _dischargeEnabled = State;
   }
+void CANBUS::EnablePylonTech(bool enable){
+  pref.putBool(ccPylonTech,enable);
+  _enablePYLONTECH = enable;
+}
 
 bool CANBUS::DataChanged(){
   if (_dataChanged) {

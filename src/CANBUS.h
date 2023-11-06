@@ -13,6 +13,7 @@ PYLON Protocol, messages sent every 1 second.
 #include <Arduino.h>
 #include <SPI.h>
 #include <mcp_can.h>              // Library for CAN Interface      https://github.com/coryjfowler/MCP_CAN_lib
+#include "mEEPROM.h"
 
 class CANBUS {
   private:
@@ -120,7 +121,7 @@ public:
   void BattCurrentmA(int32_t currentmA){_initialBattCurrent = true; _battCurrentmA = currentmA;}
   void BattTemp(int16_t batttemp){_battTemp = batttemp;}
   void SetBattCapacity(uint32_t BattCapacity){_battCapacity = BattCapacity;} 
-  void EnablePylonTech(bool State) {_enablePYLONTECH = State;} 
+  void EnablePylonTech(bool State); 
 
   uint8_t BattSOC(){return _battSOC;}
   uint16_t BattVoltage(){return _battVoltage;}
@@ -132,5 +133,6 @@ public:
   bool DischargeEnable(){return _dischargeEnabled;}
   bool EnablePylonTech(){return _enablePYLONTECH;}
   bool CanBusFailed(){return _failedCanSendCount > _maxFailedCanSendCount;}
+  mEEPROM pref;
 
 }; // End of Class
