@@ -1,3 +1,5 @@
+# This code will no longer be maintained, please use https://github.com/sijones/DiyBatteryBMS.git 
+
 VE.Direct2MQTTCANBUS takes data from a Victron Smart Shunt and sends it to a inverter over CAN allowing for "DIY LifePO4" Batteries to be integrated.
 
 The data is also sent over MQTT and allows commands to be sent back to control Charge/Discharge/Force Charge.
